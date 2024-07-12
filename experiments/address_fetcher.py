@@ -1,5 +1,7 @@
 from collections import defaultdict
-from random import randrange
+from concurrent.futures import ThreadPoolExecutor
+from os.path import expanduser
+from random import randrange, sample
 
 import networkx as nx
 import requests
@@ -65,7 +67,7 @@ def fetch_native_transfers(address: str, min_transfers: int = 50) -> List[Native
             addresses.append(Address(tx['from']['hash'], tx['from']['is_contract']))
             if tx.get('to'):
                 addresses.append(Address(tx['to']['hash'], tx['to']['is_contract']))
-            if tx['value'] != '0':
+            if tx['value'] != '0' and tx['to'].get('hash'):
                 native_transfers.append(NativeTokenTransfer(
                     timestamp=tx['timestamp'],
                     from_address=tx['from']['hash'],
@@ -132,32 +134,52 @@ def fetch_token_transfers(address: str, min_transfers: int = 50) -> TransferColl
     return transfers, addresses
 
 
+def query_node(address: str):
+    token_transfers, token_addresses = fetch_token_transfers(address)
+    native_transfers, native_addresses = fetch_native_transfers(address)
+    return token_transfers, native_transfers, token_addresses + native_addresses
+
+
 g = nx.MultiDiGraph()
 g.add_node('0x7Bb79cE20e464062Ae265A0a9D03F3e6a9200501', queried=False, fillcolor='red', style='filled')
 
-remaining_queries = 10
+remaining_queries = 5
 while remaining_queries:
     non_queried_addresses = [node for node in g.nodes if
                              not g.nodes[node].get('queried') and not g.nodes[node].get('is_contract')]
     if not non_queried_addresses:
         break
-    address = non_queried_addresses[randrange(len(non_queried_addresses))]
-    g.nodes[address]['queried'] = True
 
-    token_transfers, native_addresses = fetch_token_transfers(address)
-    token_transfers.native_transfers, token_addresses = fetch_native_transfers(address)
-    for native_transfer in token_transfers.native_transfers:
-        g.add_edge(native_transfer.from_address, native_transfer.to_address)
+    addresses = sample(non_queried_addresses, min(5, len(non_queried_addresses)))
+    roots = [node for node in non_queried_addresses if g.in_degree[node] == 0]
+    addresses += sample(roots, min(3, len(roots)))
+    addresses = list(set(addresses))
 
-    for token_transfer in token_transfers.erc20_transfers:
-        g.add_edge(token_transfer.from_address, token_transfer.to_address)
+    with ThreadPoolExecutor(max_workers=8) as executor:
+        results = list(executor.map(query_node, addresses))
 
-    for token_transfer in token_transfers.erc721_transfers:
-        g.add_edge(token_transfer.from_address, token_transfer.to_address)
+    for address in addresses:
+        g.nodes[address]['queried'] = True
 
-    for rich_address in native_addresses + token_addresses:
-        if rich_address.hash in g.nodes:
-            g.nodes[rich_address.hash]['is_contract'] = rich_address.is_contract
+    for address, result in zip(addresses, results):
+        token_transfers, native_transfers, rich_addresses = result
+
+        # token_transfers, native_addresses = fetch_token_transfers(address)
+        token_transfers.native_transfers = native_transfers
+        for native_transfer in token_transfers.native_transfers:
+            g.add_edge(native_transfer.from_address, native_transfer.to_address)
+
+        for token_transfer in token_transfers.erc20_transfers:
+            g.add_edge(token_transfer.from_address, token_transfer.to_address)
+
+        for token_transfer in token_transfers.erc721_transfers:
+            g.add_edge(token_transfer.from_address, token_transfer.to_address)
+
+        for rich_address in rich_addresses:
+            if rich_address.hash in g.nodes:
+                g.nodes[rich_address.hash]['is_contract'] = rich_address.is_contract
+                if rich_address.is_contract:
+                    g.nodes[rich_address.hash]['shape'] = 'rectangle'
 
     remaining_queries -= 1
 
@@ -189,7 +211,6 @@ num_communities = max(communities.values()) + 1
 palette = sns.color_palette("husl", num_communities)
 color_map = {i: rgb2hex(palette[i]) for i in range(num_communities)}
 
-
 # Assign color attributes to nodes based on their community
 for node, community in communities.items():
     g.nodes[node]['fillcolor'] = color_map[community]
@@ -203,5 +224,6 @@ for node in g.nodes():
     g.nodes[node]['label'] = labels[node]
 
 # g.graph['graph'] = {'overlap': False}
+g.graph['graph'] = {'rank': 'LR'}
 
-write_dot(g, 'notebooks/data/transfers.dot')
+write_dot(g, expanduser('~/tmp/transfers.dot'))
