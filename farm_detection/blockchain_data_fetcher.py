@@ -23,8 +23,11 @@ class BlockchainDataFetcher:
 
         pages = 0
         while len(native_transfers) < min_transfers and pages < 3:
-            response = requests.get(url, params=page_params, headers={'accept': 'application/json'}).json()
-            for tx in response['items']:
+            response = requests.get(url, params=page_params, headers={'accept': 'application/json'})
+            if not response.ok:
+                break
+            response = response.json()
+            for tx in response.get('items', []):
                 addresses.append(Address(tx['from']['hash'], tx['from']['is_contract']))
                 if tx.get('to'):
                     addresses.append(Address(tx['to']['hash'], tx['to']['is_contract']))
