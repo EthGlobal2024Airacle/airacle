@@ -1,5 +1,7 @@
 from flask import Flask, send_from_directory, request, redirect
 import os
+import random
+
 
 app = Flask(__name__)
 
@@ -12,6 +14,11 @@ def before_request():
 @app.route('/')
 def serve_index():
     return send_from_directory('.', 'index.html')
+
+@app.route('/claimCheck')
+def get_claim_bot_check():
+    return random.randint(0, 100)
+
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
