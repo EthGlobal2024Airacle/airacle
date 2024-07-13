@@ -22,6 +22,7 @@ class Investigator:
 
     def enrich_community(self):
         nodes = [node for node in self.community.nodes if self.community.nodes[node].get('is_contract') is False]
+
         for node, transactions, in self.fetcher.fetch_transaction_history(nodes).items():
             if not transactions:
                 continue
