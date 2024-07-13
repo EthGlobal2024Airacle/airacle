@@ -30,7 +30,7 @@ def get_claim_bot_check(address: str):
     subgraph = analyzer.get_community_subgraph()
     investigator = Investigator(subgraph, fetcher)
     investigator.enrich_community()
-    return str(round(investigator.evaluate_farmness(address) * 100, 0))
+    return str(int(round(investigator.evaluate_farmness(address) * 100, 0)))
 
 
 if __name__ == '__main__':
