@@ -6,7 +6,7 @@ import networkx as nx
 from graph_builder import GraphBuilder
 from blockchain_data_fetcher import BlockchainDataFetcher
 from community_detector import CommunityDetector
-from graph_visualizer import GraphVisualizer
+# from graph_visualizer import GraphVisualizer
 
 
 class BlockchainAnalyzer:
@@ -53,11 +53,11 @@ class BlockchainAnalyzer:
         native_transfers, native_addresses = self.data_fetcher.fetch_native_transfers(address)
         return token_transfers, native_transfers, token_addresses + native_addresses
 
-    def visualize(self):
-        graph = self.graph_builder.graph.copy()
-        GraphVisualizer.apply_community_colors(graph)
-        GraphVisualizer.adjust_labels(graph)
-        GraphVisualizer.write_graph_to_file(graph, '~/tmp/transfers.dot')
+    # def visualize(self):
+    #     graph = self.graph_builder.graph.copy()
+    #     GraphVisualizer.apply_community_colors(graph)
+    #     GraphVisualizer.adjust_labels(graph)
+    #     GraphVisualizer.write_graph_to_file(graph, '~/tmp/transfers.dot')
 
     def get_community_subgraph(self) -> nx.MultiDiGraph:
         if self.initial_address not in self.graph_builder.graph:
