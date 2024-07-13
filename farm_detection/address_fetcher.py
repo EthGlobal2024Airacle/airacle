@@ -84,7 +84,7 @@ class Investigator:
             if not start_timestamp:
                 continue
 
-            if abs((start_timestamp - root_start_timestamp).days) <= 21:
+            if abs((start_timestamp - root_start_timestamp).days) <= 180:
                 farm_candidates.append(node)
 
         if len(farm_candidates) <= 1:
