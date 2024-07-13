@@ -57,6 +57,7 @@ class BlockchainDataFetcher:
             response = requests.get(url, params=page_params, headers={'accept': 'application/json'})
             if not response.ok:
                 break
+
             response = response.json()
             for transfer in response.get('items', []):
                 addresses.append(Address(transfer['from']['hash'], transfer['from']['is_contract']))
