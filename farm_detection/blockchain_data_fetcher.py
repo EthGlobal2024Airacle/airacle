@@ -4,11 +4,11 @@ from typing import Tuple, List, Dict
 
 import requests
 
-from experiments.address import Address
-from experiments.erc20_transfer import ERC20Transfer
-from experiments.erc721_transfer import ERC721Transfer
-from experiments.native_token_transfer import NativeTokenTransfer
-from experiments.transfer_collection import TransferCollection
+from farm_detection.address import Address
+from farm_detection.erc20_transfer import ERC20Transfer
+from farm_detection.erc721_transfer import ERC721Transfer
+from farm_detection.native_token_transfer import NativeTokenTransfer
+from farm_detection.transfer_collection import TransferCollection
 
 
 class BlockchainDataFetcher:

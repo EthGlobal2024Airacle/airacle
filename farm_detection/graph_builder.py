@@ -2,8 +2,8 @@ from typing import List
 
 import networkx as nx
 
-from experiments.address import Address
-from experiments.transfer_collection import TransferCollection
+from farm_detection.address import Address
+from farm_detection.transfer_collection import TransferCollection
 
 
 class GraphBuilder:

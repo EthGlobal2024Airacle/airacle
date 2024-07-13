@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from experiments.transfer import Transfer
+from farm_detection.transfer import Transfer
 
 
 @dataclass

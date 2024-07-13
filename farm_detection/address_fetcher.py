@@ -5,8 +5,8 @@ import networkx as nx
 from itertools import combinations
 from typing import Dict, Tuple
 
-from experiments.blockchain_analyzer import BlockchainAnalyzer
-from experiments.blockchain_data_fetcher import BlockchainDataFetcher
+from farm_detection.blockchain_analyzer import BlockchainAnalyzer
+from farm_detection.blockchain_data_fetcher import BlockchainDataFetcher
 
 
 class Investigator:

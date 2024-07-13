@@ -2,9 +2,9 @@ from flask import Flask, send_from_directory, request, redirect
 import os
 import random
 
-from experiments.address_fetcher import Investigator
-from experiments.blockchain_analyzer import BlockchainAnalyzer
-from experiments.blockchain_data_fetcher import BlockchainDataFetcher
+from farm_detection.address_fetcher import Investigator
+from farm_detection.blockchain_analyzer import BlockchainAnalyzer
+from farm_detection.blockchain_data_fetcher import BlockchainDataFetcher
 
 app = Flask(__name__)
 
