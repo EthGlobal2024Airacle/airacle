@@ -1,5 +1,8 @@
 from concurrent.futures import ThreadPoolExecutor
 from random import sample
+
+import networkx as nx
+
 from graph_builder import GraphBuilder
 from blockchain_data_fetcher import BlockchainDataFetcher
 from community_detector import CommunityDetector
@@ -54,3 +57,18 @@ class BlockchainAnalyzer:
         GraphVisualizer.apply_community_colors(self.graph_builder.graph)
         GraphVisualizer.adjust_labels(self.graph_builder.graph)
         GraphVisualizer.write_graph_to_file(self.graph_builder.graph, '~/tmp/transfers.dot')
+
+    def get_community_subgraph(self) -> nx.Graph:
+        if self.initial_address not in self.graph_builder.graph:
+            raise ValueError("Initial address not found in the graph. Make sure to run analyze() first.")
+
+        initial_community = self.graph_builder.graph.nodes[self.initial_address]['community']
+
+        # Get all nodes in the same community as the initial address
+        community_nodes = [node for node, data in self.graph_builder.graph.nodes(data=True)
+                           if data.get('community') == initial_community]
+
+        # Create a subgraph with only the nodes in the community
+        community_subgraph = self.graph_builder.graph.subgraph(community_nodes).copy()
+
+        return community_subgraph
