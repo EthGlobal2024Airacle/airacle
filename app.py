@@ -21,6 +21,7 @@ def serve_index():
     return send_from_directory('.', 'index.html')
 
 
+@app.route('/claimCheck/', defaults={'address': '0x9E8Ab5Ed0E6275f0d0b837971e74Dd97a3e8E04d'})
 @app.route('/claimCheck/<address>')
 def get_claim_bot_check(address: str):
     fetcher = BlockchainDataFetcher()
@@ -30,7 +31,6 @@ def get_claim_bot_check(address: str):
     investigator = Investigator(subgraph, fetcher)
     investigator.enrich_community()
     return investigator.evaluate_farmness(address)
-
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
