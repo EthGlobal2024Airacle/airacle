@@ -149,9 +149,9 @@ Our system employs a range of sophisticated techniques to ensure accurate detect
 
 ## Contributors
 
-Nir Magenheim
-Eli Shalom
-Xenofon Kontouris
+- Nir Magenheim
+- Eli Shalom
+- Xenofon Kontouris
 
 ## License
 
