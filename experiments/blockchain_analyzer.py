@@ -1,11 +1,9 @@
 from concurrent.futures import ThreadPoolExecutor
-from os.path import expanduser
 from random import sample
-
-from experiments.blockchain_data_fetcher import BlockchainDataFetcher
-from experiments.community_detector import CommunityDetector
-from experiments.graph_builder import GraphBuilder
-from experiments.graph_visualizer import GraphVisualizer
+from graph_builder import GraphBuilder
+from blockchain_data_fetcher import BlockchainDataFetcher
+from community_detector import CommunityDetector
+from graph_visualizer import GraphVisualizer
 
 
 class BlockchainAnalyzer:
@@ -14,7 +12,7 @@ class BlockchainAnalyzer:
         self.graph_builder = GraphBuilder()
         self.data_fetcher = BlockchainDataFetcher()
 
-    def analyze(self, max_queries: int = 5):
+    def analyze(self, max_queries: int = 4):
         self.graph_builder.add_initial_node(self.initial_address)
 
         remaining_queries = max_queries
@@ -25,7 +23,7 @@ class BlockchainAnalyzer:
 
             addresses = self._select_addresses(non_queried_addresses)
 
-            with ThreadPoolExecutor(max_workers=8) as executor:
+            with ThreadPoolExecutor(max_workers=4) as executor:
                 results = list(executor.map(self._query_node, addresses))
 
             for address, result in zip(addresses, results):
@@ -37,10 +35,14 @@ class BlockchainAnalyzer:
 
         self.graph_builder.remove_zero_address()
 
+        # Detect communities and set them for each node
+        communities = CommunityDetector.detect_communities(self.graph_builder.graph)
+        CommunityDetector.set_node_communities(self.graph_builder.graph, communities)
+
     def _select_addresses(self, non_queried_addresses):
-        addresses = sample(non_queried_addresses, min(5, len(non_queried_addresses)))
+        addresses = sample(non_queried_addresses, min(4, len(non_queried_addresses)))
         roots = [node for node in non_queried_addresses if self.graph_builder.graph.in_degree[node] == 0]
-        addresses += sample(roots, min(3, len(roots)))
+        addresses += sample(roots, min(2, len(roots)))
         return list(set(addresses))
 
     def _query_node(self, address: str):
@@ -49,7 +51,6 @@ class BlockchainAnalyzer:
         return token_transfers, native_transfers, token_addresses + native_addresses
 
     def visualize(self):
-        communities = CommunityDetector.detect_communities(self.graph_builder.graph)
-        GraphVisualizer.apply_community_colors(self.graph_builder.graph, communities)
+        GraphVisualizer.apply_community_colors(self.graph_builder.graph)
         GraphVisualizer.adjust_labels(self.graph_builder.graph)
-        GraphVisualizer.write_graph_to_file(self.graph_builder.graph, expanduser('~/tmp/transfers.dot'))
+        GraphVisualizer.write_graph_to_file(self.graph_builder.graph, '~/tmp/transfers.dot')

@@ -22,7 +22,7 @@ class BlockchainDataFetcher:
 
         pages = 0
         while len(native_transfers) < min_transfers and pages < 3:
-            response = requests.get(url, params=page_params).json()
+            response = requests.get(url, params=page_params, headers={'accept': 'application/json'}).json()
             for tx in response['items']:
                 addresses.append(Address(tx['from']['hash'], tx['from']['is_contract']))
                 if tx.get('to'):
@@ -53,7 +53,7 @@ class BlockchainDataFetcher:
 
         pages = 0
         while len(transfers.erc20_transfers) + len(transfers.erc721_transfers) < min_transfers and pages < 3:
-            response = requests.get(url, params=page_params).json()
+            response = requests.get(url, params=page_params, headers={'accept': 'application/json'}).json()
             for transfer in response['items']:
                 addresses.append(Address(transfer['from']['hash'], transfer['from']['is_contract']))
                 if transfer.get('to'):
