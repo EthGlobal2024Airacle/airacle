@@ -1,18 +1,21 @@
-from collections import defaultdict
-from concurrent.futures import ThreadPoolExecutor
-from os.path import expanduser
-from random import randrange, sample
-
 import networkx as nx
 import requests
-from typing import List
+from typing import List, Dict, Tuple
 from dataclasses import dataclass, field
 import community as community_louvain
-import matplotlib.pyplot as plt
-from matplotlib.colors import rgb2hex
-
-from networkx.drawing.nx_pydot import write_dot
 import seaborn as sns
+from matplotlib.colors import rgb2hex
+from networkx.drawing.nx_pydot import write_dot
+from concurrent.futures import ThreadPoolExecutor
+from collections import defaultdict
+from random import sample
+from os.path import expanduser
+
+
+@dataclass
+class Address:
+    hash: str
+    is_contract: bool
 
 
 @dataclass
@@ -21,12 +24,6 @@ class Transfer:
     from_address: str
     to_address: str
     tx_hash: str
-
-
-@dataclass
-class Address:
-    hash: str
-    is_contract: bool
 
 
 @dataclass
@@ -53,177 +50,222 @@ class TransferCollection:
     erc721_transfers: List[ERC721Transfer] = field(default_factory=list)
 
 
-def fetch_native_transfers(address: str, min_transfers: int = 50) -> List[NativeTokenTransfer]:
-    base_url = f"https://arbitrum.blockscout.com/api/v2/addresses/{address}/transactions"
-    native_transfers = []
-    addresses = []
-    page_params = {'filter': 'to'}
-    page_params = {}
+class BlockchainDataFetcher:
+    BASE_URL = "https://arbitrum.blockscout.com/api/v2"
 
-    pages = 0
-    while len(native_transfers) < min_transfers and pages < 3:
-        response = requests.get(base_url, params=page_params).json()
-        for tx in response['items']:
-            addresses.append(Address(tx['from']['hash'], tx['from']['is_contract']))
-            if tx.get('to'):
-                addresses.append(Address(tx['to']['hash'], tx['to']['is_contract']))
-            if tx['value'] != '0' and tx['to'].get('hash'):
-                native_transfers.append(NativeTokenTransfer(
-                    timestamp=tx['timestamp'],
-                    from_address=tx['from']['hash'],
-                    to_address=tx['to']['hash'],
-                    value=tx['value'],
-                    tx_hash=tx['hash']
-                ))
+    @classmethod
+    def fetch_native_transfers(cls, address: str, min_transfers: int = 50) -> Tuple[
+        List[NativeTokenTransfer], List[Address]]:
+        url = f"{cls.BASE_URL}/addresses/{address}/transactions"
+        native_transfers = []
+        addresses = []
+        page_params = {}
 
-        pages += 1
-        if response.get('next_page_params'):
-            page_params.update(response['next_page_params'])
-        else:
-            break
+        pages = 0
+        while len(native_transfers) < min_transfers and pages < 3:
+            response = requests.get(url, params=page_params).json()
+            for tx in response['items']:
+                addresses.append(Address(tx['from']['hash'], tx['from']['is_contract']))
+                if tx.get('to'):
+                    addresses.append(Address(tx['to']['hash'], tx['to']['is_contract']))
+                if tx['value'] != '0' and tx['to'].get('hash'):
+                    native_transfers.append(NativeTokenTransfer(
+                        timestamp=tx['timestamp'],
+                        from_address=tx['from']['hash'],
+                        to_address=tx['to']['hash'],
+                        value=tx['value'],
+                        tx_hash=tx['hash']
+                    ))
 
-    return native_transfers, addresses
+            pages += 1
+            if response.get('next_page_params'):
+                page_params.update(response['next_page_params'])
+            else:
+                break
+
+        return native_transfers, addresses
+
+    @classmethod
+    def fetch_token_transfers(cls, address: str, min_transfers: int = 50) -> Tuple[TransferCollection, List[Address]]:
+        url = f"{cls.BASE_URL}/addresses/{address}/token-transfers"
+        transfers = TransferCollection()
+        addresses = []
+        page_params = {'type': 'ERC-20,ERC-721'}
+
+        pages = 0
+        while len(transfers.erc20_transfers) + len(transfers.erc721_transfers) < min_transfers and pages < 3:
+            response = requests.get(url, params=page_params).json()
+            for transfer in response['items']:
+                addresses.append(Address(transfer['from']['hash'], transfer['from']['is_contract']))
+                if transfer.get('to'):
+                    addresses.append(Address(transfer['to']['hash'], transfer['to']['is_contract']))
+
+                cls._process_transfer(transfer, transfers)
+
+            pages += 1
+            if response.get('next_page_params'):
+                page_params.update(response['next_page_params'])
+            else:
+                break
+
+        return transfers, addresses
+
+    @staticmethod
+    def _process_transfer(transfer, transfers):
+        timestamp = transfer['timestamp']
+        from_address = transfer['from']['hash']
+        to_address = transfer['to']['hash']
+        tx_hash = transfer['tx_hash']
+
+        if transfer['token']['type'] == 'ERC-20':
+            transfers.erc20_transfers.append(ERC20Transfer(
+                timestamp=timestamp,
+                from_address=from_address,
+                to_address=to_address,
+                symbol=transfer['token']['symbol'],
+                value=transfer['total']['value'],
+                tx_hash=tx_hash
+            ))
+        elif transfer['token']['type'] == 'ERC-721':
+            transfers.erc721_transfers.append(ERC721Transfer(
+                timestamp=timestamp,
+                from_address=from_address,
+                to_address=to_address,
+                symbol=transfer['token']['symbol'],
+                token_id=transfer['total']['token_id'],
+                tx_hash=tx_hash
+            ))
 
 
-def fetch_token_transfers(address: str, min_transfers: int = 50) -> TransferCollection:
-    base_url = f"https://arbitrum.blockscout.com/api/v2/addresses/{address}/token-transfers"
-    transfers = TransferCollection()
-    addresses = []
-    page_params = {
-        # 'filter': 'to',
-        # 'type': 'ERC-20,ERC-721,ERC-1155'}
-        'type': 'ERC-20,ERC-721'}
+class GraphBuilder:
+    def __init__(self):
+        self.graph = nx.MultiDiGraph()
 
-    pages = 0
-    while len(transfers.erc20_transfers) + len(transfers.erc721_transfers) < min_transfers and pages < 3:
-        response = requests.get(base_url, params=page_params).json()
-        for transfer in response['items']:
-            addresses.append(Address(transfer['from']['hash'], transfer['from']['is_contract']))
-            if transfer.get('to'):
-                addresses.append(Address(transfer['to']['hash'], transfer['to']['is_contract']))
-            timestamp = transfer['timestamp']
-            from_address = transfer['from']['hash']
-            to_address = transfer['to']['hash']
-            tx_hash = transfer['tx_hash']
+    def add_initial_node(self, address: str):
+        self.graph.add_node(address, queried=False, fillcolor='red', style='filled')
 
-            if transfer['token']['type'] == 'ERC-20':
-                transfers.erc20_transfers.append(ERC20Transfer(
-                    timestamp=timestamp,
-                    from_address=from_address,
-                    to_address=to_address,
-                    symbol=transfer['token']['symbol'],
-                    value=transfer['total']['value'],
-                    tx_hash=tx_hash
-                ))
-            elif transfer['token']['type'] == 'ERC-721':
-                transfers.erc721_transfers.append(ERC721Transfer(
-                    timestamp=timestamp,
-                    from_address=from_address,
-                    to_address=to_address,
-                    symbol=transfer['token']['symbol'],
-                    token_id=transfer['total']['token_id'],
-                    tx_hash=tx_hash
-                ))
+    def update_graph(self, address: str, token_transfers: TransferCollection, addresses: List[Address]):
+        self.graph.nodes[address]['queried'] = True
 
-        pages += 1
-        if response.get('next_page_params'):
-            page_params.update(response['next_page_params'])
-        else:
-            break
-
-    return transfers, addresses
-
-
-def query_node(address: str):
-    token_transfers, token_addresses = fetch_token_transfers(address)
-    native_transfers, native_addresses = fetch_native_transfers(address)
-    return token_transfers, native_transfers, token_addresses + native_addresses
-
-
-g = nx.MultiDiGraph()
-g.add_node('0x7Bb79cE20e464062Ae265A0a9D03F3e6a9200501', queried=False, fillcolor='red', style='filled')
-
-remaining_queries = 5
-while remaining_queries:
-    non_queried_addresses = [node for node in g.nodes if
-                             not g.nodes[node].get('queried') and not g.nodes[node].get('is_contract')]
-    if not non_queried_addresses:
-        break
-
-    addresses = sample(non_queried_addresses, min(5, len(non_queried_addresses)))
-    roots = [node for node in non_queried_addresses if g.in_degree[node] == 0]
-    addresses += sample(roots, min(3, len(roots)))
-    addresses = list(set(addresses))
-
-    with ThreadPoolExecutor(max_workers=8) as executor:
-        results = list(executor.map(query_node, addresses))
-
-    for address in addresses:
-        g.nodes[address]['queried'] = True
-
-    for address, result in zip(addresses, results):
-        token_transfers, native_transfers, rich_addresses = result
-
-        # token_transfers, native_addresses = fetch_token_transfers(address)
-        token_transfers.native_transfers = native_transfers
         for native_transfer in token_transfers.native_transfers:
-            g.add_edge(native_transfer.from_address, native_transfer.to_address)
+            self.graph.add_edge(native_transfer.from_address, native_transfer.to_address)
 
-        for token_transfer in token_transfers.erc20_transfers:
-            g.add_edge(token_transfer.from_address, token_transfer.to_address)
+        for token_transfer in token_transfers.erc20_transfers + token_transfers.erc721_transfers:
+            self.graph.add_edge(token_transfer.from_address, token_transfer.to_address)
 
-        for token_transfer in token_transfers.erc721_transfers:
-            g.add_edge(token_transfer.from_address, token_transfer.to_address)
-
-        for rich_address in rich_addresses:
-            if rich_address.hash in g.nodes:
-                g.nodes[rich_address.hash]['is_contract'] = rich_address.is_contract
+        for rich_address in addresses:
+            if rich_address.hash in self.graph.nodes:
+                self.graph.nodes[rich_address.hash]['is_contract'] = rich_address.is_contract
                 if rich_address.is_contract:
-                    g.nodes[rich_address.hash]['shape'] = 'rectangle'
+                    self.graph.nodes[rich_address.hash]['shape'] = 'rectangle'
 
-    remaining_queries -= 1
+    def remove_zero_address(self):
+        if '0x0000000000000000000000000000000000000000' in self.graph.nodes:
+            self.graph.remove_node('0x0000000000000000000000000000000000000000')
 
-if '0x0000000000000000000000000000000000000000' in g.nodes:
-    g.remove_node('0x0000000000000000000000000000000000000000')
-
-
-def convert_to_weighted_graph(multi_di_graph):
-    g = nx.Graph()
-
-    # Use a dictionary to store the cumulative weights of edges
-    edge_weights = defaultdict(float)
-
-    for u, v, data in multi_di_graph.edges(data=True):
-        weight = data.get('weight', 1)  # Assuming default weight is 1 if not specified
-        edge_weights[(u, v)] += weight
-
-    # Add edges with cumulative weights to the new Graph
-    for (u, v), weight in edge_weights.items():
-        g.add_edge(u, v, weight=weight)
-
-    return g
+    def get_non_queried_addresses(self):
+        return [node for node in self.graph.nodes if
+                not self.graph.nodes[node].get('queried') and not self.graph.nodes[node].get('is_contract')]
 
 
-communities = community_louvain.best_partition(convert_to_weighted_graph(g), weight='weight')
-print(communities)
+class CommunityDetector:
+    @staticmethod
+    def detect_communities(graph: nx.MultiDiGraph) -> Dict[str, int]:
+        weighted_graph = CommunityDetector._convert_to_weighted_graph(graph)
+        return community_louvain.best_partition(weighted_graph, weight='weight')
 
-num_communities = max(communities.values()) + 1
-palette = sns.color_palette("husl", num_communities)
-color_map = {i: rgb2hex(palette[i]) for i in range(num_communities)}
+    @staticmethod
+    def _convert_to_weighted_graph(multi_di_graph: nx.MultiDiGraph) -> nx.Graph:
+        g = nx.Graph()
+        edge_weights = defaultdict(float)
 
-# Assign color attributes to nodes based on their community
-for node, community in communities.items():
-    g.nodes[node]['fillcolor'] = color_map[community]
-    g.nodes[node]['style'] = 'filled'
+        for u, v, data in multi_di_graph.edges(data=True):
+            weight = data.get('weight', 1)
+            edge_weights[(u, v)] += weight
 
-# Adjust labels to be the first 6 characters and the last 4 characters with "..." in the middle
-labels = {node: (str(node)[:6] + "..." + str(node)[-4:]) if len(str(node)) > 10 else str(node) for node in g.nodes()}
+        for (u, v), weight in edge_weights.items():
+            g.add_edge(u, v, weight=weight)
 
-# Write the graph to a DOT file with community colors and adjusted labels
-for node in g.nodes():
-    g.nodes[node]['label'] = labels[node]
+        return g
 
-# g.graph['graph'] = {'overlap': False}
-g.graph['graph'] = {'rank': 'LR'}
 
-write_dot(g, expanduser('~/tmp/transfers.dot'))
+class GraphVisualizer:
+    @staticmethod
+    def apply_community_colors(graph: nx.MultiDiGraph, communities: Dict[str, int]):
+        num_communities = max(communities.values()) + 1
+        palette = sns.color_palette("husl", num_communities)
+        color_map = {i: rgb2hex(palette[i]) for i in range(num_communities)}
+
+        for node, community in communities.items():
+            graph.nodes[node]['fillcolor'] = color_map[community]
+            graph.nodes[node]['style'] = 'filled'
+
+    @staticmethod
+    def adjust_labels(graph: nx.MultiDiGraph):
+        labels = {node: (str(node)[:6] + "..." + str(node)[-4:]) if len(str(node)) > 10 else str(node) for node in
+                  graph.nodes()}
+        for node in graph.nodes():
+            graph.nodes[node]['label'] = labels[node]
+
+    @staticmethod
+    def write_graph_to_file(graph: nx.MultiDiGraph, filename: str):
+        graph.graph['graph'] = {'rank': 'LR'}
+        write_dot(graph, filename)
+
+
+class BlockchainAnalyzer:
+    def __init__(self, initial_address: str):
+        self.initial_address = initial_address
+        self.graph_builder = GraphBuilder()
+        self.data_fetcher = BlockchainDataFetcher()
+
+    def analyze(self, max_queries: int = 5):
+        self.graph_builder.add_initial_node(self.initial_address)
+
+        remaining_queries = max_queries
+        while remaining_queries:
+            non_queried_addresses = self.graph_builder.get_non_queried_addresses()
+            if not non_queried_addresses:
+                break
+
+            addresses = self._select_addresses(non_queried_addresses)
+
+            with ThreadPoolExecutor(max_workers=8) as executor:
+                results = list(executor.map(self._query_node, addresses))
+
+            for address, result in zip(addresses, results):
+                token_transfers, native_transfers, rich_addresses = result
+                token_transfers.native_transfers = native_transfers
+                self.graph_builder.update_graph(address, token_transfers, rich_addresses)
+
+            remaining_queries -= 1
+
+        self.graph_builder.remove_zero_address()
+
+    def _select_addresses(self, non_queried_addresses):
+        addresses = sample(non_queried_addresses, min(5, len(non_queried_addresses)))
+        roots = [node for node in non_queried_addresses if self.graph_builder.graph.in_degree[node] == 0]
+        addresses += sample(roots, min(3, len(roots)))
+        return list(set(addresses))
+
+    def _query_node(self, address: str):
+        token_transfers, token_addresses = self.data_fetcher.fetch_token_transfers(address)
+        native_transfers, native_addresses = self.data_fetcher.fetch_native_transfers(address)
+        return token_transfers, native_transfers, token_addresses + native_addresses
+
+    def visualize(self):
+        communities = CommunityDetector.detect_communities(self.graph_builder.graph)
+        GraphVisualizer.apply_community_colors(self.graph_builder.graph, communities)
+        GraphVisualizer.adjust_labels(self.graph_builder.graph)
+        GraphVisualizer.write_graph_to_file(self.graph_builder.graph, expanduser('~/tmp/transfers.dot'))
+
+
+def main():
+    initial_address = '0x7Bb79cE20e464062Ae265A0a9D03F3e6a9200501'.lower()
+    analyzer = BlockchainAnalyzer(initial_address)
+    analyzer.analyze()
+    analyzer.visualize()
+
+
+if __name__ == "__main__":
+    main()
