@@ -77,7 +77,7 @@ class Investigator:
         # root_end_timestamp = self.community.nodes[address]['end_timestamp']
         farm_candidates = []
         for node, similarity, in self.community.nodes[address]['jaccard_similarity'].items():
-            if similarity < 0.25:
+            if similarity < 0.1:
                 continue
 
             start_timestamp = self.community.nodes[address].get('start_timestamp')
@@ -87,7 +87,7 @@ class Investigator:
             if abs((start_timestamp - root_start_timestamp).days) <= 21:
                 farm_candidates.append(node)
 
-        if len(farm_candidates) <= 5:
+        if len(farm_candidates) <= 1:
             return 0
 
         return sum(self.community.nodes[address]['jaccard_similarity'][node] for node in farm_candidates) / len(
