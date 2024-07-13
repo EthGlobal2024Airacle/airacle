@@ -26,7 +26,7 @@ def serve_index():
 def get_claim_bot_check(address: str):
     fetcher = BlockchainDataFetcher()
     analyzer = BlockchainAnalyzer(address, fetcher)
-    analyzer.analyze(max_queries=4)
+    analyzer.analyze(max_queries=2)
     subgraph = analyzer.get_community_subgraph()
     investigator = Investigator(subgraph, fetcher)
     investigator.enrich_community()

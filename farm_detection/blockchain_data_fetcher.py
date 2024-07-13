@@ -97,7 +97,7 @@ class BlockchainDataFetcher:
             ))
 
     @classmethod
-    def fetch_transaction_history(cls, addresses: List[str], num_transactions: int = 100) -> Dict[str, List[Dict]]:
+    def fetch_transaction_history(cls, addresses: List[str], num_transactions: int = 30) -> Dict[str, List[Dict]]:
         with ThreadPoolExecutor(max_workers=10) as executor:
             results = list(executor.map(
                 lambda addr: (addr, cls._fetch_transactions(addr, num_transactions)),
@@ -111,7 +111,7 @@ class BlockchainDataFetcher:
         url = f"{cls.BASE_URL}/addresses/{address}/transactions"
         params = {
             'filter': 'from',
-            'limit': min(limit, 100)  # API typically limits to 100 per request
+            'limit': limit  # API typically limits to 100 per request
         }
         headers = {'accept': 'application/json'}
 

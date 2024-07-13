@@ -26,7 +26,7 @@ class BlockchainAnalyzer:
 
             addresses = self._select_addresses(non_queried_addresses)
 
-            with ThreadPoolExecutor(max_workers=4) as executor:
+            with ThreadPoolExecutor(max_workers=8) as executor:
                 results = list(executor.map(self._query_node, addresses))
 
             for address, result in zip(addresses, results):
