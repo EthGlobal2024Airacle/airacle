@@ -43,9 +43,9 @@ class BlockchainAnalyzer:
         CommunityDetector.set_node_communities(self.graph_builder.graph, communities)
 
     def _select_addresses(self, non_queried_addresses):
-        addresses = sample(non_queried_addresses, min(5, len(non_queried_addresses)))
+        addresses = sample(non_queried_addresses, min(4, len(non_queried_addresses)))
         roots = [node for node in non_queried_addresses if self.graph_builder.graph.in_degree[node] == 0]
-        addresses += sample(roots, min(3, len(roots)))
+        addresses += sample(roots, min(2, len(roots)))
         return list(set(addresses))
 
     def _query_node(self, address: str):
