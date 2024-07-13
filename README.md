@@ -97,28 +97,40 @@ This class is the core of our AI-powered analysis. It employs a multi-faceted ap
 
 ### Advanced Analytical Methods
 
-Our system employs a range of sophisticated techniques to ensure accurate detection of airdrop farming:
+Our system employs a range of techniques to detect airdrop farming, with a focus on extensibility and community involvement. The core methods currently implemented include:
 
-1. **Node Embedding**: We use advanced graph embedding techniques to represent addresses in a high-dimensional space,
-   allowing for nuanced similarity comparisons.
+1. **Efficient Graph Exploration**: We utilize advanced random sampling techniques to explore the transaction graph. This approach focuses on dense "areas" of activity, making the exploration highly efficient and targeted. By prioritizing regions with high interaction frequency, we can quickly identify potential hotspots of coordinated behavior.
 
-2. **Jaccard Similarity**: This metric is used to quantify the overlap in transaction patterns between addresses,
-   helping to identify clusters of potentially related wallets.
+2. **Community Detection**: Building on our graph exploration, we employ similarity-based connections to detect communities within the network. Our approach initially uses the Louvain algorithm to identify core communities, which are then refined using additional similarity metrics. This multi-step process allows us to isolate clusters of addresses that exhibit coordinated behavior.
 
-3. **AI and LLM-based Signals**: We leverage state-of-the-art language models to analyze transaction metadata and smart
-   contract interactions, extracting semantic signals that might indicate coordinated behavior.
+3. **Jaccard Similarity**: This metric is used to quantify the overlap in transaction patterns between addresses, helping to identify clusters of potentially related wallets. It serves as a key component in our similarity-based community detection.
 
-4. **External Signals and Blacklists**: Our system integrates with external data sources and blacklists to incorporate
-   known patterns of malicious behavior.
+Our system is designed with extensibility in mind, allowing for the integration of various sophisticated techniques to enhance airdrop farming detection. While some of these methods are in development or planned for future iterations, the system's architecture facilitates their seamless integration:
 
-5. **Transfer Learning**: We apply knowledge transfer techniques to leverage insights from previous malicious campaigns,
-   allowing our system to quickly adapt to new exploitation strategies.
+4. **Temporal Pattern Analysis**: The system's data collection and analysis pipelines are structured to support time series analysis. This could be utilized to detect synchronized actions across multiple addresses, a potential indicator of bot-driven farming.
 
-6. **Anomaly Detection**: Employs unsupervised learning techniques to identify unusual patterns that deviate from normal
-   blockchain activity.
+5. **LLM-based Signals**: The system is prepared to leverage state-of-the-art language models for analyzing transaction metadata and smart contract interactions. This could potentially extract semantic signals indicative of coordinated behavior.
 
-7. **Temporal Pattern Analysis**: Utilizes time series analysis to detect synchronized actions across multiple
-   addresses, a common indicator of bot-driven farming.
+6. **External Signals and Blacklists**: The architecture supports integration with external data sources and blacklists. This feature could incorporate known patterns of malicious behavior, enhancing the system's detection capabilities.
+
+7. **Transfer Learning**: The system is designed to accommodate knowledge transfer techniques. This could allow leveraging insights from previous malicious campaigns, potentially enabling quick adaptation to new exploitation strategies.
+
+8. **Anomaly Detection**: The framework is ready for the implementation of unsupervised learning techniques. These could be used to identify unusual patterns that deviate from normal blockchain activity.
+
+9. **Node Embedding**: Advanced graph embedding techniques can be employed to represent addresses in a high-dimensional space, potentially allowing for more nuanced similarity comparisons.
+
+10. **GNN-based Classification**: Our architecture is primed for the integration of Graph Neural Networks (GNNs). This approach could offer several potential advantages:
+
+   - **Community Detection Enhancement**: GNNs could refine and improve our initial community detection results.
+   - **Adaptive Learning**: As the system detects and confirms airdrop farming attempts, these identified communities could potentially be used as training data for the GNN, creating a feedback loop to continually improve detection.
+   - **Structural Analysis**: GNNs could capture complex relationships and structures within blockchain transaction graphs, potentially detecting subtle patterns in farming community formation.
+   - **Feature Aggregation**: By aggregating features from neighboring nodes, GNNs could capture not just individual wallet behavior, but also characteristics of the wallet's transaction neighborhood.
+   - **Scalability**: GNNs could efficiently process large-scale graph data, making them suitable for analyzing extensive blockchain networks.
+   - **Robustness**: As the GNN learns from confirmed farming instances, it could become increasingly robust in detecting new, previously unseen farming strategies.
+
+The open and public nature of blockchain data presents unique opportunities for the crypto community to collaborate on improving detection methods. As these techniques are developed and refined, they could be easily integrated into our extensible system. Moreover, the transparency of on-chain data allows for potential portability of these methods across different blockchain networks, fostering a collaborative approach to combating airdrop farming across the entire crypto ecosystem.
+
+By providing this flexible and extensible framework, we aim to create a foundation upon which the community can build and improve, leveraging collective expertise to stay ahead of evolving airdrop farming techniques.
 
 ### Workflow
 
