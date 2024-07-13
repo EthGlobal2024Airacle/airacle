@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stop the Airdrop Farming</title>
+    <script src="https://cdn.jsdelivr.net/npm/web3@1.6.1/dist/web3.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f4f4f4;
+        }
+        h1 {
+            color: #333;
+        }
+        h2 {
+            color: #666;
+        }
+        p {
+            max-width: 600px;
+            text-align: center;
+            color: #555;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            color: #fff;
+            background-color: #007bff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Stop the Airdrop Farming</h1>
+    <h2>Returning the airdrop to the users, back from the airdrop farms</h2>
+    <p>
+        Airdrop farming has become a major issue in the decentralized ecosystem. It's time to return the airdrops to their rightful owners. By ensuring that only legitimate users receive the benefits, we can strengthen the community and enhance the value of these tokens.
+    </p>
+    <button id="claimButton">I'm not a bot, claim my Airdrop</button>
+
+    <script>
+        document.getElementById('claimButton').addEventListener('click', async () => {
+            if (typeof window.ethereum !== 'undefined') {
+                try {
+                    const web3 = new Web3(window.ethereum);
+                    await window.ethereum.request({ method: 'eth_requestAccounts' });
+
+                    const chainId = 421614;
+                    await window.ethereum.request({
+                        method: 'wallet_switchEthereumChain',
+                        params: [{ chainId: Web3.utils.toHex(chainId) }],
+                    });
+
+                    const contractAddress = '0x132483DB25420a26E22D09388651D7688ef996a1';
+                    const abi = [
+                        {
+                            "constant": false,
+                            "inputs": [],
+                            "name": "claim",
+                            "outputs": [],
+                            "payable": false,
+                            "stateMutability": "nonpayable",
+                            "type": "function"
+                        }
+                    ];
+                    const contract = new web3.eth.Contract(abi, contractAddress);
+
+                    const accounts = await web3.eth.getAccounts();
+                    await contract.methods.claim().send({ from: accounts[0] });
+
+                    alert('Airdrop claimed successfully!');
+                } catch (error) {
+                    console.error(error);
+                    alert('There was an error claiming the airdrop. Please try again.');
+                }
+            } else {
+                alert('MetaMask is not installed. Please install it to continue.');
+            }
+        });
+    </script>
+</body>
+</html>
