@@ -25,8 +25,9 @@ contract BotChecker is FunctionsClient, ConfirmedOwner {
 
     string source =
 
+    "const wallet = args[0]"
     "const apiResponse = await Functions.makeHttpRequest({"
-    "url: 'https://stopairdropbots.xyz/claimCheck',"
+    "url: 'https://stopairdropbots.xyz/claimCheck/${wallet}',"
     "method: 'GET'});"
     "return Functions.encodeUint256(apiResponse.data);";
 
