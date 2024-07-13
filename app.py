@@ -17,7 +17,7 @@ def serve_index():
 
 @app.route('/claimCheck')
 def get_claim_bot_check():
-    return random.randint(0, 100)
+    return str(random.randint(0, 100))
 
 
 if __name__ == '__main__':
