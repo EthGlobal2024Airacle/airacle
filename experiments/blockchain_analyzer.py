@@ -10,10 +10,10 @@ from graph_visualizer import GraphVisualizer
 
 
 class BlockchainAnalyzer:
-    def __init__(self, initial_address: str):
+    def __init__(self, initial_address: str, fetcher: BlockchainDataFetcher):
         self.initial_address = initial_address
         self.graph_builder = GraphBuilder()
-        self.data_fetcher = BlockchainDataFetcher()
+        self.data_fetcher = fetcher
 
     def analyze(self, max_queries: int = 4):
         self.graph_builder.add_initial_node(self.initial_address)
@@ -43,9 +43,9 @@ class BlockchainAnalyzer:
         CommunityDetector.set_node_communities(self.graph_builder.graph, communities)
 
     def _select_addresses(self, non_queried_addresses):
-        addresses = sample(non_queried_addresses, min(4, len(non_queried_addresses)))
+        addresses = sample(non_queried_addresses, min(5, len(non_queried_addresses)))
         roots = [node for node in non_queried_addresses if self.graph_builder.graph.in_degree[node] == 0]
-        addresses += sample(roots, min(2, len(roots)))
+        addresses += sample(roots, min(3, len(roots)))
         return list(set(addresses))
 
     def _query_node(self, address: str):
@@ -54,11 +54,12 @@ class BlockchainAnalyzer:
         return token_transfers, native_transfers, token_addresses + native_addresses
 
     def visualize(self):
-        GraphVisualizer.apply_community_colors(self.graph_builder.graph)
-        GraphVisualizer.adjust_labels(self.graph_builder.graph)
-        GraphVisualizer.write_graph_to_file(self.graph_builder.graph, '~/tmp/transfers.dot')
+        graph = self.graph_builder.graph.copy()
+        GraphVisualizer.apply_community_colors(graph)
+        GraphVisualizer.adjust_labels(graph)
+        GraphVisualizer.write_graph_to_file(graph, '~/tmp/transfers.dot')
 
-    def get_community_subgraph(self) -> nx.Graph:
+    def get_community_subgraph(self) -> nx.MultiDiGraph:
         if self.initial_address not in self.graph_builder.graph:
             raise ValueError("Initial address not found in the graph. Make sure to run analyze() first.")
 

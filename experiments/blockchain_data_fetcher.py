@@ -1,4 +1,6 @@
-from typing import Tuple, List
+from asyncio import as_completed
+from concurrent.futures import ThreadPoolExecutor
+from typing import Tuple, List, Dict
 
 import requests
 
@@ -94,3 +96,42 @@ class BlockchainDataFetcher:
                 token_id=transfer['total']['token_id'],
                 tx_hash=tx_hash
             ))
+
+    @classmethod
+    def fetch_transaction_history(cls, addresses: List[str], num_transactions: int = 100) -> Dict[str, List[Dict]]:
+        with ThreadPoolExecutor(max_workers=10) as executor:
+            results = list(executor.map(
+                lambda addr: (addr, cls._fetch_transactions(addr, num_transactions)),
+                addresses
+            ))
+
+        return dict(results)
+
+    @classmethod
+    def _fetch_transactions(cls, address: str, limit: int) -> List[Dict]:
+        url = f"{cls.BASE_URL}/addresses/{address}/transactions"
+        params = {
+            'filter': 'from',
+            'limit': min(limit, 100)  # API typically limits to 100 per request
+        }
+        headers = {'accept': 'application/json'}
+
+        all_transactions = []
+
+        while len(all_transactions) < limit:
+            response = requests.get(url, params=params, headers=headers)
+
+            if response.status_code != 200:
+                print(f"Error fetching transactions for address {address}: {response.status_code}")
+                break
+
+            data = response.json()
+            transactions = data.get('items', [])
+            all_transactions.extend(transactions)
+
+            if 'next_page_params' not in data or not data['next_page_params']:
+                break  # No more pages
+
+            params.update(data['next_page_params'])
+
+        return all_transactions[:limit]

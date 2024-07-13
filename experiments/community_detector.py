@@ -26,6 +26,7 @@ class CommunityDetector:
 
     @staticmethod
     def set_node_communities(graph: nx.MultiDiGraph, communities: Dict[str, int]):
+        nx.set_node_attributes(graph, max(communities.values()) + 1, 'community')
         for node, community in communities.items():
             if node in graph.nodes:
                 graph.nodes[node]['community'] = community
