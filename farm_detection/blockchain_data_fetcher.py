@@ -54,8 +54,11 @@ class BlockchainDataFetcher:
 
         pages = 0
         while len(transfers.erc20_transfers) + len(transfers.erc721_transfers) < min_transfers and pages < 3:
-            response = requests.get(url, params=page_params, headers={'accept': 'application/json'}).json()
-            for transfer in response['items']:
+            response = requests.get(url, params=page_params, headers={'accept': 'application/json'})
+            if not response.ok:
+                break
+            response = response.json()
+            for transfer in response.get('items', []):
                 addresses.append(Address(transfer['from']['hash'], transfer['from']['is_contract']))
                 if transfer.get('to'):
                     addresses.append(Address(transfer['to']['hash'], transfer['to']['is_contract']))
