@@ -3,9 +3,9 @@ from random import sample
 
 import networkx as nx
 
-from graph_builder import GraphBuilder
-from blockchain_data_fetcher import BlockchainDataFetcher
-from community_detector import CommunityDetector
+from .graph_builder import GraphBuilder
+from .blockchain_data_fetcher import BlockchainDataFetcher
+from .community_detector import CommunityDetector
 # from graph_visualizer import GraphVisualizer
 
 

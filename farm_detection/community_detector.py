@@ -3,6 +3,7 @@ import community as community_louvain
 from typing import Dict
 from collections import defaultdict
 
+
 class CommunityDetector:
     @staticmethod
     def detect_communities(graph: nx.MultiDiGraph) -> Dict[str, int]:

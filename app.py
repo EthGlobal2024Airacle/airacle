@@ -1,6 +1,6 @@
-from flask import Flask, send_from_directory, request, redirect
 import os
-import random
+
+from flask import Flask, send_from_directory, request, redirect
 
 from farm_detection.address_fetcher import Investigator
 from farm_detection.blockchain_analyzer import BlockchainAnalyzer
@@ -31,6 +31,7 @@ def get_claim_bot_check(address: str):
     investigator = Investigator(subgraph, fetcher)
     investigator.enrich_community()
     return investigator.evaluate_farmness(address)
+
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))

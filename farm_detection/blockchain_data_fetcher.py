@@ -1,14 +1,13 @@
-from asyncio import as_completed
 from concurrent.futures import ThreadPoolExecutor
 from typing import Tuple, List, Dict
 
 import requests
 
-from farm_detection.address import Address
-from farm_detection.erc20_transfer import ERC20Transfer
-from farm_detection.erc721_transfer import ERC721Transfer
-from farm_detection.native_token_transfer import NativeTokenTransfer
-from farm_detection.transfer_collection import TransferCollection
+from .address import Address
+from .erc20_transfer import ERC20Transfer
+from .erc721_transfer import ERC721Transfer
+from .native_token_transfer import NativeTokenTransfer
+from .transfer_collection import TransferCollection
 
 
 class BlockchainDataFetcher:

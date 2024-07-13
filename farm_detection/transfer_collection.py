@@ -1,9 +1,9 @@
 from dataclasses import dataclass, field
 from typing import List
 
-from farm_detection.erc20_transfer import ERC20Transfer
-from farm_detection.erc721_transfer import ERC721Transfer
-from farm_detection.native_token_transfer import NativeTokenTransfer
+from .erc20_transfer import ERC20Transfer
+from .erc721_transfer import ERC721Transfer
+from .native_token_transfer import NativeTokenTransfer
 
 
 @dataclass
